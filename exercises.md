@@ -15,11 +15,11 @@ Gọi `call_openai` với temperature 0.0, 0.5, 1.0 và 1.5 dùng prompt
 **"Hãy kể cho tôi một sự thật thú vị về Việt Nam."**
 
 **Bạn nhận thấy quy luật gì qua bốn phản hồi?** (2–3 câu)
-> Temperature ảnh hưởng đến *cách diễn đạt* nhiều hơn *chủ đề*: cả 4 mức đều
-> xoay quanh hang Sơn Đoòng và cà phê Robusta, chỉ khác câu chữ. Đáng chú ý là
-> ngay cả temperature = 0.0 cũng cho 5/5 phản hồi khác nhau — nên 0.0 không có
-> nghĩa là kết quả lặp lại y hệt. Với n = 5 mình chưa thấy rõ "temp cao thì đa
-> dạng hơn"; cỡ mẫu quá nhỏ để kết luận.
+> Ở prompt này temperature chủ yếu đổi *cách diễn đạt*, nhưng *chủ đề* vẫn dao
+> động giữa hai fact gần ngang xác suất (Sơn Đoòng và cà phê Robusta) — kể cả
+> ở 0.0 (3/2), nên không thể nói "chỉ khác câu chữ". Đáng chú ý là 0.0 vẫn cho
+> 5/5 phản hồi khác nhau, tức 0.0 không đồng nghĩa lặp lại y hệt. Với n = 5
+> mình chưa thấy rõ "temp cao thì đa dạng hơn"; cỡ mẫu quá nhỏ để kết luận.
 
 ### Câu 1.2 — Chọn temperature cho sản phẩm
 **Bạn sẽ đặt temperature bao nhiêu cho chatbot hỗ trợ khách hàng, và tại sao?**
