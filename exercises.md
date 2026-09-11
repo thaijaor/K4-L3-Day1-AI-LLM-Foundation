@@ -95,13 +95,27 @@ nhiều token hơn tiếng Anh cùng độ dài?**
 ### Câu 3.1 — Trải nghiệm người dùng với streaming
 **Streaming quan trọng nhất trong trường hợp nào, và khi nào thì
 non-streaming lại phù hợp hơn?** (1 đoạn văn)
-> *Câu trả lời của bạn*
+> Streaming quan trọng nhất khi phản hồi dài và có người ngồi chờ trực tiếp —
+> chatbot, trợ lý code, hỏi đáp: đo được ở đây, chữ đầu hiện sau 1,36s trong
+> khi câu trả lời đầy đủ mất 2,22s, nên người dùng thấy phản hồi sớm hơn ~0,9s
+> và không tưởng app bị treo. Nó cải thiện *cảm nhận* độ trễ chứ không giảm tổng
+> thời gian. Non-streaming phù hợp hơn khi không có người xem trực tiếp hoặc cần
+> nguyên vẹn kết quả trước khi dùng: gọi API trong backend, cần parse JSON/chạy
+> tool trên toàn bộ output, hoặc phải kiểm duyệt nội dung trước khi hiển thị —
+> khi đó xử lý từng mảnh vừa phức tạp vừa vô ích.
 
 ### Câu 3.2 — Vì sao backoff theo cấp số nhân?
 **So với delay cố định (ví dụ luôn chờ 1 giây), exponential backoff có lợi
 thế gì khi API bị quá tải? Điều gì xảy ra nếu hàng nghìn client cùng retry
 với delay cố định giống nhau?**
-> *Câu trả lời của bạn*
+> Delay cố định làm mọi client retry cùng một nhịp, nên nếu API quá tải thì cứ
+> mỗi 1 giây nó lại nhận nguyên một đợt request dồn về — đúng lúc đang yếu lại
+> bị đập thêm, khó hồi phục (thundering herd). Exponential backoff giãn khoảng
+> chờ tăng dần (0,10 → 0,20 → 0,40s, đo được ở bài) nên tải retry giảm nhanh
+> theo thời gian, cho server khoảng thở. Nếu hàng nghìn client cùng delay cố
+> định giống nhau, chúng sẽ retry đồng bộ thành từng đợt nhọn lặp lại, có thể
+> giữ server sập mãi. Thực tế còn thêm *jitter* (ngẫu nhiên hóa delay) để phá vỡ
+> sự đồng bộ đó — backoff riêng lẻ vẫn có thể trùng pha giữa các client.
 
 ---
 

@@ -323,8 +323,38 @@ def streaming_chatbot() -> None:
         - Sau mỗi lượt, thêm phản hồi assistant vào history.
         - Cắt history còn 3 lượt cuối (6 message): history = history[-6:]
     """
-    # TODO: vòng lặp while, đọc input, stream phản hồi, duy trì history
-    raise NotImplementedError("Implement streaming_chatbot")
+    from openai import OpenAI
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    system_msg = {"role": "system", "content": "Bạn là trợ lý thân thiện, trả lời ngắn gọn bằng tiếng Việt."}
+    history: list[dict] = []
+
+    while True:
+        user_text = input("Bạn: ").strip()
+        if user_text.lower() in ("quit", "exit"):
+            print("Tạm biệt!")
+            break
+        if not user_text:
+            continue
+
+        messages = [system_msg] + history + [{"role": "user", "content": user_text}]
+        stream = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=messages,
+            stream=True,
+        )
+
+        print("Bot: ", end="", flush=True)
+        reply = ""
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content or ""  # chunk cuối có content=None
+            print(delta, end="", flush=True)
+            reply += delta
+        print()
+
+        history.append({"role": "user", "content": user_text})
+        history.append({"role": "assistant", "content": reply})
+        history = history[-6:]  # giữ 3 lượt gần nhất (6 message)
 
 
 # ---------------------------------------------------------------------------
@@ -350,8 +380,19 @@ def retry_with_backoff(
     Raises:
         Exception cuối cùng của fn() sau khi hết số lần thử.
     """
-    # TODO: vòng lặp retry với exponential backoff
-    raise NotImplementedError("Implement retry_with_backoff")
+    last_exc: Exception | None = None
+    # Thử 1 lần + tối đa max_retries lần retry
+    for attempt in range(max_retries + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            last_exc = exc
+            if attempt < max_retries:
+                time.sleep(base_delay * (2 ** attempt))  # 0.1 -> 0.2 -> 0.4 ...
+            else:
+                raise
+    # Không bao giờ tới đây, nhưng để rõ ràng:
+    raise last_exc
 
 
 # ===========================================================================
