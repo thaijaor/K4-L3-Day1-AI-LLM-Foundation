@@ -75,9 +75,24 @@ def call_openai(
         # (perf_counter là đồng hồ đo khoảng thời gian, độ phân giải cao trên
         #  mọi hệ điều hành; time.time() trên Windows có thể trả về 0.0)
     """
-    # TODO: import OpenAI, tạo client, gọi chat.completions.create,
-    #       đo start/end time, trả về (response_text, latency)
-    raise NotImplementedError("Implement call_openai")
+    from openai import OpenAI  # import BÊN TRONG hàm để test mock được
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    # perf_counter đặt sát hai đầu create() — latency chỉ tính lời gọi mạng
+    start = time.perf_counter()
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+    )
+    latency = time.perf_counter() - start
+
+    # content có thể là None khi output bị cắt vì chạm max_tokens
+    text = response.choices[0].message.content or ""
+    return text, latency
 
 
 # ---------------------------------------------------------------------------
@@ -98,8 +113,13 @@ def call_openai_mini(
     Gợi ý:
         Tái sử dụng call_openai() với model=OPENAI_MINI_MODEL — 1 dòng code.
     """
-    # TODO: gọi call_openai với model=OPENAI_MINI_MODEL
-    raise NotImplementedError("Implement call_openai_mini")
+    return call_openai(
+        prompt,
+        model=OPENAI_MINI_MODEL,
+        temperature=temperature,
+        top_p=top_p,
+        max_tokens=max_tokens,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -122,8 +142,23 @@ def compare_models(prompt: str) -> dict:
                * PRICING_PER_1K_TOKENS[OPENAI_MODEL]["output"]
         (0.75 từ ≈ 1 token — ước lượng thô; Part 2 sẽ tính chính xác hơn)
     """
-    # TODO: gọi call_openai và call_openai_mini, ghép dict kết quả
-    raise NotImplementedError("Implement compare_models")
+    gemini35_text, gemini35_latency = call_openai(prompt)
+    mini_text, mini_latency = call_openai_mini(prompt)
+
+    # Ước lượng thô: 0.75 từ ≈ 1 token (Part 2 sẽ đếm chính xác bằng tiktoken)
+    gemini35_cost = (
+        (len(gemini35_text.split()) / 0.75)
+        / 1000
+        * PRICING_PER_1K_TOKENS[OPENAI_MODEL]["output"]
+    )
+
+    return {
+        "gemini35_response": gemini35_text,
+        "mini_response": mini_text,
+        "gemini35_latency": gemini35_latency,
+        "mini_latency": mini_latency,
+        "gemini35_cost_estimate": gemini35_cost,
+    }
 
 
 # ===========================================================================
