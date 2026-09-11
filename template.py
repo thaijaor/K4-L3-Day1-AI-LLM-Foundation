@@ -450,8 +450,65 @@ def run_assistant(
         return {"num_turns": num_turns, "total_tokens": total_tokens,
                 "total_cost": total_cost, "history": history}
     """
-    # TODO: triển khai theo khung sườn trong docstring
-    raise NotImplementedError("Implement run_assistant")
+    from openai import OpenAI
+
+    if get_input is None:
+        get_input = input
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    history: list[dict] = []
+    num_turns = 0
+    total_tokens = 0
+    total_cost = 0.0
+
+    while True:
+        # Kiểm tra max_turns TRƯỚC khi đọc input — nếu không, max_turns=0 sẽ
+        # gọi get_input() và làm test StopIteration thất bại.
+        if max_turns is not None and num_turns >= max_turns:
+            break
+
+        user_msg = get_input()
+        if user_msg.strip().lower() in ("quit", "exit"):
+            break
+
+        messages = (
+            [{"role": "system", "content": persona}]
+            + history
+            + [{"role": "user", "content": user_msg}]
+        )
+
+        # Bọc lời gọi API trong retry để chịu lỗi tạm thời (429, timeout...)
+        stream = retry_with_backoff(
+            lambda: client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=messages,
+                stream=True,
+            )
+        )
+
+        print("Trợ lý: ", end="", flush=True)
+        reply = ""
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content or ""
+            print(delta, end="", flush=True)
+            reply += delta
+        print()
+
+        history.append({"role": "user", "content": user_msg})
+        history.append({"role": "assistant", "content": reply})
+        history = history[-6:]  # giữ 3 lượt gần nhất
+
+        num_turns += 1
+        stats = estimate_cost(user_msg, reply, OPENAI_MODEL)
+        total_tokens += stats["input_tokens"] + stats["output_tokens"]
+        total_cost += stats["total_cost"]
+
+    return {
+        "num_turns": num_turns,
+        "total_tokens": total_tokens,
+        "total_cost": total_cost,
+        "history": history,
+    }
 
 
 # ===========================================================================
@@ -465,8 +522,12 @@ def batch_compare(prompts: list[str]) -> list[dict]:
         List các dict — mỗi dict là kết quả compare_models kèm thêm
         key "prompt" chứa prompt gốc.
     """
-    # TODO (bonus): lặp qua prompts, gọi compare_models, thêm key "prompt"
-    raise NotImplementedError("Implement batch_compare")
+    results = []
+    for prompt in prompts:
+        entry = compare_models(prompt)
+        entry["prompt"] = prompt
+        results.append(entry)
+    return results
 
 
 def format_comparison_table(results: list[dict]) -> str:
@@ -476,8 +537,21 @@ def format_comparison_table(results: list[dict]) -> str:
     Cột: Prompt | Gemini35 Response | Mini Response | Gemini35 Latency | Mini Latency
     Gợi ý: cắt text dài còn 40 ký tự cho dễ nhìn.
     """
-    # TODO (bonus): dựng chuỗi bảng và trả về
-    raise NotImplementedError("Implement format_comparison_table")
+    def clip(text: str, n: int = 40) -> str:
+        text = " ".join(str(text).split())
+        return text if len(text) <= n else text[: n - 1] + "…"
+
+    header = f"{'Prompt':<42} | {'Gemini35':<42} | {'Mini':<42} | {'G35 lat':>8} | {'Mini lat':>8}"
+    lines = [header, "-" * len(header)]
+    for r in results:
+        lines.append(
+            f"{clip(r.get('prompt', '')):<42} | "
+            f"{clip(r.get('gemini35_response', '')):<42} | "
+            f"{clip(r.get('mini_response', '')):<42} | "
+            f"{r.get('gemini35_latency', 0.0):>7.2f}s | "
+            f"{r.get('mini_latency', 0.0):>7.2f}s"
+        )
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------

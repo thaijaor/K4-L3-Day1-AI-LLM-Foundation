@@ -125,13 +125,30 @@ với delay cố định giống nhau?**
 **Bạn chọn persona gì cho trợ lý của mình? Viết lại system prompt đó và giải
 thích 1–2 lựa chọn từ ngữ quan trọng trong prompt (ví dụ: vì sao yêu cầu
 "trả lời ngắn gọn", vì sao chỉ định ngôn ngữ...):**
-> *Câu trả lời của bạn*
+> Persona: trợ giảng thân thiện của khóa AI. System prompt:
+> `"Bạn là trợ giảng thân thiện của khóa AI, trả lời ngắn gọn bằng tiếng Việt."`
+>
+> Hai lựa chọn quan trọng:
+> - **"ngắn gọn"** — chặn model viết lan man: vừa giảm token output (đỡ tốn phí,
+>   phản hồi nhanh hơn) vừa hợp bối cảnh CLI, nơi câu trả lời dài rất khó đọc.
+> - **"bằng tiếng Việt"** — ghim ngôn ngữ đầu ra. Không có dòng này, model dễ
+>   chèn thuật ngữ hoặc cả câu tiếng Anh khi người dùng hỏi về AI; chỉ định rõ
+>   giúp giọng nhất quán.
 
 ### Câu 4.2 — Hạn chế & cải thiện
 **Trợ lý của bạn hiện có hạn chế lớn nhất là gì (ví dụ: history chỉ 3 lượt,
 không có bộ nhớ dài hạn, không kiểm duyệt nội dung...)? Đề xuất một cải
 thiện cụ thể và mô tả ngắn cách triển khai:**
-> *Câu trả lời của bạn*
+> **Hạn chế lớn nhất:** history bị cắt cứng còn 3 lượt (`history[-6:]`) — hỏi
+> lại điều đã nói 4 lượt trước là trợ lý "quên" hẳn, vì message cũ bị xóa chứ
+> không được tóm tắt.
+>
+> **Cải thiện — rolling summary:** thay vì bỏ message cũ, gộp chúng thành một
+> đoạn tóm tắt ngắn. Cụ thể: khi history vượt 6 message, lấy các message sắp bị
+> cắt gửi cho model kèm prompt "tóm tắt hội thoại trên trong 2-3 câu", rồi chèn
+> bản tóm tắt vào đầu history dưới dạng một system message ("Bối cảnh trước
+> đó: ..."). Nhờ vậy giữ được ngữ cảnh dài mà số token vẫn có trần, không phình
+> vô hạn.
 
 ---
 
