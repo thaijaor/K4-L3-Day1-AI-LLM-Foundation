@@ -62,7 +62,12 @@ Gọi `chat_with_system_prompt` hai lần với cùng câu hỏi
 
 **Hai phản hồi khác nhau như thế nào (độ dài, từ vựng, ví dụ)? System prompt
 ảnh hưởng đến hành vi model ra sao?** (3–4 câu)
-> *Câu trả lời của bạn*
+> Độ dài gần bằng nhau (309 vs 290 từ) vì cả hai đều chạm trần `max_tokens`,
+> nhưng *từ vựng* và *ví dụ* khác hẳn. Bản cho trẻ 8 tuổi dùng phép so sánh đời
+> thường (cuốn sổ chung, bạn An chép điều ước) và câu ngắn; bản chuyên gia dùng
+> thuật ngữ (distributed ledger, SHA-256, Merkle Root, tấn công 51%) và cấu
+> trúc phân mục. Cùng một câu hỏi, system prompt quyết định *cách* model trình
+> bày — vai, giọng, độ sâu, ví dụ — chứ không đổi nội dung cốt lõi.
 
 ### Câu 2.2 — tiktoken vs đếm từ
 Chọn một đoạn văn tiếng Việt ~100 từ. So sánh số token theo `count_tokens`
@@ -70,7 +75,18 @@ Chọn một đoạn văn tiếng Việt ~100 từ. So sánh số token theo `co
 
 **Hai con số chênh nhau bao nhiêu phần trăm? Vì sao tiếng Việt thường tốn
 nhiều token hơn tiếng Anh cùng độ dài?**
-> *Câu trả lời của bạn*
+> **Chênh lệch:** đoạn ~125 từ tiếng Việt cho `count_tokens` = 154, còn `từ/0.75`
+> = 167 → ước lượng cao hơn **~8%** (thực tế 1,23 token/từ so với giả định 1,33).
+>
+> **Vì sao tiếng Việt tốn nhiều token hơn:** BPE học chủ yếu trên dữ liệu tiếng
+> Anh, nên từ tiếng Anh phổ biến thường gộp thành 1 token, còn tiếng Việt thì
+> không. Chữ có dấu (thanh, mũ, móc) bị mã hóa thành nhiều byte UTF-8 và hay bị
+> tách nhỏ; thêm nữa tiếng Việt viết rời từng âm tiết ("khu vực", "văn hóa"),
+> mỗi âm tiết dễ thành 1–2 token. Đo được ở đây: 1,23 token/từ (VI) so với 1,16
+> (EN). Chênh không lớn vì o200k_base đã hỗ trợ Unicode khá tốt.
+>
+> *Lưu ý:* Gemini không có bảng mã trong tiktoken nên `count_tokens` dùng
+> `o200k_base` (tokenizer GPT-4o) làm xấp xỉ — không phải token thật Gemini tính.
 
 ---
 

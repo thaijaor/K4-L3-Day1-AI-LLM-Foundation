@@ -193,8 +193,25 @@ def chat_with_system_prompt(
             {"role": "user", "content": user_prompt},
         ]
     """
-    # TODO: giống call_openai nhưng messages có thêm phần tử role="system"
-    raise NotImplementedError("Implement chat_with_system_prompt")
+    from openai import OpenAI
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    start = time.perf_counter()
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    latency = time.perf_counter() - start
+
+    text = response.choices[0].message.content or ""
+    return text, latency
 
 
 # ---------------------------------------------------------------------------
@@ -220,8 +237,26 @@ def count_tokens(text: str, model: str = OPENAI_MODEL) -> int:
         try/except — nếu lỗi (offline, model lạ), dùng ước lượng dự phòng:
         max(1, len(text) // 4)   (trung bình 1 token ≈ 4 ký tự)
     """
-    # TODO: dùng tiktoken để đếm token, có fallback khi lỗi
-    raise NotImplementedError("Implement count_tokens")
+    import tiktoken
+
+    try:
+        enc = tiktoken.encoding_for_model(model)
+    except KeyError:
+        # Model ngoài họ OpenAI (vd Gemini) không có bảng mã riêng trong
+        # tiktoken. Dùng o200k_base làm xấp xỉ — vẫn là tokenizer thật, tốt
+        # hơn nhiều so với đếm ký tự.
+        try:
+            enc = tiktoken.get_encoding("o200k_base")
+        except Exception:
+            enc = None
+    except Exception:
+        enc = None
+
+    if enc is not None:
+        return len(enc.encode(text))
+
+    # Fallback cuối khi offline / tiktoken lỗi: 1 token ≈ 4 ký tự
+    return max(1, len(text) // 4)
 
 
 # ---------------------------------------------------------------------------
@@ -247,8 +282,20 @@ def estimate_cost(prompt: str, response: str, model: str = OPENAI_MODEL) -> dict
         (.get với fallback: model không có trong bảng giá — ví dụ model NIM
          miễn phí — thì lấy giá LAB_MODEL làm tham chiếu học tập)
     """
-    # TODO: đếm token prompt/response, tra bảng giá, trả về dict 5 key
-    raise NotImplementedError("Implement estimate_cost")
+    input_tokens = count_tokens(prompt, model)
+    output_tokens = count_tokens(response, model)
+
+    pricing = PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS[OPENAI_MODEL])
+    input_cost = input_tokens / 1000 * pricing["input"]
+    output_cost = output_tokens / 1000 * pricing["output"]
+
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "input_cost": input_cost,
+        "output_cost": output_cost,
+        "total_cost": input_cost + output_cost,
+    }
 
 
 # ===========================================================================
