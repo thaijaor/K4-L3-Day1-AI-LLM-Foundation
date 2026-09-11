@@ -326,7 +326,7 @@ hoặc chưa `pip install`.
 ### Mục tiêu
 - Gọi Chat Completions API, đo độ trễ
 - Hiểu tham số `model`, `temperature`, `top_p`, `max_tokens`
-- So sánh GPT-4o với GPT-4o-mini về chất lượng / độ trễ / chi phí
+- So sánh gemini-3.5-flash-lite với gemini-3.1-flash-lite về chất lượng / độ trễ / chi phí
 
 ### Kiến thức nền (giảng viên demo 10')
 
@@ -337,7 +337,7 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 response = client.chat.completions.create(
-    model="gpt-4o",
+    model="gemini-3.5-flash-lite",
     messages=[{"role": "user", "content": "Xin chào!"}],
     temperature=0.7,   # 0.0 = ổn định, càng cao càng "sáng tạo"
     top_p=0.9,         # nucleus sampling — thường chỉ chỉnh 1 trong 2
@@ -407,19 +407,19 @@ hưởng lợi.
 
 **Bước 1.** Gọi lần lượt hai hàm trên với cùng `prompt`:
 ```python
-gpt4o_text, gpt4o_latency = call_openai(prompt)
+gemini35_text, gemini35_latency = call_openai(prompt)
 mini_text, mini_latency = call_openai_mini(prompt)
 ```
 
-**Bước 2.** Ước tính chi phí output của GPT-4o. Ở block này ta dùng ước lượng
+**Bước 2.** Ước tính chi phí output của model chính. Ở block này ta dùng ước lượng
 thô "0.75 từ ≈ 1 token" (Block 2 sẽ tính chính xác bằng tiktoken):
 ```python
-cost = (len(gpt4o_text.split()) / 0.75) / 1000 \
-       * PRICING_PER_1K_TOKENS["gpt-4o"]["output"]
+cost = (len(gemini35_text.split()) / 0.75) / 1000 \
+       * PRICING_PER_1K_TOKENS[OPENAI_MODEL]["output"]
 ```
 
-**Bước 3.** Ghép dict đúng 5 key như docstring (`gpt4o_response`,
-`mini_response`, `gpt4o_latency`, `mini_latency`, `gpt4o_cost_estimate`).
+**Bước 3.** Ghép dict đúng 5 key như docstring (`gemini35_response`,
+`mini_response`, `gemini35_latency`, `mini_latency`, `gemini35_cost_estimate`).
 Tên key phải khớp từng ký tự — test so sánh chính xác.
 
 ### ✅ CHECKPOINT 1 (phút 100)
@@ -516,7 +516,7 @@ output_tokens = count_tokens(response, model)
 
 **Bước 2.** Tra bảng giá và tính. Lưu ý đơn vị là **USD trên 1000 token**:
 ```python
-pricing = PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS["gpt-4o"])
+pricing = PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS[OPENAI_MODEL])
 input_cost = input_tokens / 1000 * pricing["input"]
 output_cost = output_tokens / 1000 * pricing["output"]
 ```
@@ -878,12 +878,12 @@ người khác xem được. Fork private thì giảng viên không chấm đư�
 |---|---|---|
 | Test fail dù code "chạy thật" được | Import `OpenAI` ở đầu file | Chuyển `from openai import OpenAI` vào **trong** hàm |
 | `AuthenticationError` khi chạy pytest | Code đang gọi API thật thay vì mock | Cùng nguyên nhân trên — mock không "bắt" được import đầu file |
-| `KeyError: 'gpt4o_response'` | Tên key trong dict gõ sai | So từng ký tự với docstring |
+| `KeyError: 'gemini35_response'` | Tên key trong dict gõ sai | So từng ký tự với docstring |
 | Chunk cuối làm crash (`TypeError: ... NoneType`) | Quên `or ""` khi đọc `delta.content` | `delta = chunk.choices[0].delta.content or ""` |
 | History phình to, chi phí tăng dần | Quên cắt history | `history = history[-6:]` sau mỗi lượt |
 | `StopIteration` trong test scenario | Đọc input nhiều hơn số lượt kịch bản | Kiểm tra `max_turns` **trước** khi `get_input()` |
 | tiktoken treo/lỗi khi offline | Lần đầu cần mạng để tải encoding | Fallback `max(1, len(text) // 4)` trong try/except |
-| `KeyError: 'meta/llama-...'` ở Part 4 | `estimate_cost` tra bảng giá bằng `[model]` khi dùng NIM | `PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS["gpt-4o"])` |
+| `KeyError: 'meta/llama-...'` ở Part 4 | `estimate_cost` tra bảng giá bằng `[model]` khi dùng NIM | `PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS[OPENAI_MODEL])` |
 | `latency` bằng `0.0` trên Windows | `time.time()` chỉ nhích mỗi ~15,6 ms (Python ≤ 3.12) | Dùng `time.perf_counter()` để đo khoảng thời gian |
 
 ---
@@ -920,7 +920,7 @@ LAB_MODEL=meta/llama-3.3-70b-instruct
 LAB_MINI_MODEL=meta/llama-3.1-8b-instruct
 ```
 
-Cặp model trên thay vai GPT-4o (model lớn) và GPT-4o-mini (model nhỏ) —
+Cặp model trên đóng vai model lớn và model nhỏ —
 bài so sánh 70B vs 8B của Block 1 vẫn nguyên giá trị: bạn sẽ thấy đúng
 sự đánh đổi chất lượng / tốc độ giữa model lớn và nhỏ.
 
@@ -942,7 +942,7 @@ Thấy câu trả lời tiếng Việt in ra là xong — làm tiếp lab như b
   điểm số không phụ thuộc bạn dùng OpenAI hay NIM.
 - `count_tokens` không có bảng mã cho model Llama → tự động rơi về ước
   lượng `len(text) // 4` (đúng như thiết kế fallback ở Task 2.2).
-- `estimate_cost` với model lạ dùng giá gpt-4o làm **tham chiếu học tập**
+- `estimate_cost` với model lạ dùng giá LAB_MODEL làm **tham chiếu học tập**
   (NIM thực tế miễn phí) — xem gợi ý `.get(...)` trong docstring Task 2.3.
 - Nếu gặp lỗi 429 (hết hạn mức tạm thời) — chính là lúc `retry_with_backoff`
   của Task 3.2 tỏa sáng.

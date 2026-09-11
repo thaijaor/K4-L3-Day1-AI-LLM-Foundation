@@ -25,14 +25,20 @@ load_dotenv()
 # Bảng giá ước tính (USD / 1K token) — cập nhật nếu giá thay đổi
 # ---------------------------------------------------------------------------
 PRICING_PER_1K_TOKENS = {
-    "gpt-4o": {"input": 0.0025, "output": 0.010},
-    "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
+    # --- Cap model dung trong bai (xem .env) ---
+    # Gia lay tu https://ai.google.dev/gemini-api/docs/pricing (11/09/2026),
+    # paid tier, don vi goc USD/1 TRIEU token -> chia 1000 cho khop don vi /1K.
+    #   gemini-3.5-flash-lite : in $0.30/1M, out $2.50/1M
+    #   gemini-3.1-flash-lite : in $0.25/1M, out $1.50/1M
+    # Thuc te ca hai deu co free tier nen chi phi that la $0; bang nay chi de hoc.
+    "gemini-3.5-flash-lite": {"input": 0.0003, "output": 0.0025},
+    "gemini-3.1-flash-lite": {"input": 0.00025, "output": 0.0015},
 }
 
-# Tên model có thể đổi qua .env — ví dụ khi dùng NVIDIA NIM miễn phí
-# (xem LAB_GUIDE.md, Phụ lục B). Không đặt gì trong .env thì mặc định OpenAI.
-OPENAI_MODEL = os.getenv("LAB_MODEL", "gpt-4o")
-OPENAI_MINI_MODEL = os.getenv("LAB_MINI_MODEL", "gpt-4o-mini")
+# Tên model đọc từ .env. Không đặt gì trong .env thì dùng đúng cặp mặc định
+# dưới đây — phải khớp với các key trong PRICING_PER_1K_TOKENS ở trên.
+OPENAI_MODEL = os.getenv("LAB_MODEL", "gemini-3.5-flash-lite")
+OPENAI_MINI_MODEL = os.getenv("LAB_MINI_MODEL", "gemini-3.1-flash-lite")
 
 
 # ===========================================================================
@@ -40,7 +46,7 @@ OPENAI_MINI_MODEL = os.getenv("LAB_MINI_MODEL", "gpt-4o-mini")
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# Task 1.1 — Gọi GPT-4o
+# Task 1.1 — Gọi model chính (gemini-3.5-flash-lite)
 # ---------------------------------------------------------------------------
 def call_openai(
     prompt: str,
@@ -54,7 +60,7 @@ def call_openai(
 
     Args:
         prompt:      Tin nhắn của người dùng.
-        model:       Model OpenAI sử dụng (mặc định: gpt-4o).
+        model:       Model sử dụng (mặc định: LAB_MODEL = gemini-3.5-flash-lite).
         temperature: Độ ngẫu nhiên khi lấy mẫu (0.0 – 2.0).
         top_p:       Ngưỡng nucleus sampling.
         max_tokens:  Số token tối đa được sinh ra.
@@ -75,7 +81,7 @@ def call_openai(
 
 
 # ---------------------------------------------------------------------------
-# Task 1.2 — Gọi GPT-4o-mini
+# Task 1.2 — Gọi model nhỏ (gemini-3.1-flash-lite)
 # ---------------------------------------------------------------------------
 def call_openai_mini(
     prompt: str,
@@ -84,7 +90,7 @@ def call_openai_mini(
     max_tokens: int = 256,
 ) -> tuple[str, float]:
     """
-    Gọi API với model gpt-4o-mini — nhanh hơn và rẻ hơn.
+    Gọi API với model nhỏ (LAB_MINI_MODEL = gemini-3.1-flash-lite) — nhanh và rẻ hơn.
 
     Returns:
         Tuple (response_text: str, latency_seconds: float).
@@ -97,7 +103,7 @@ def call_openai_mini(
 
 
 # ---------------------------------------------------------------------------
-# Task 1.3 — So sánh GPT-4o vs GPT-4o-mini
+# Task 1.3 — So sánh gemini-3.5-flash-lite vs gemini-3.1-flash-lite
 # ---------------------------------------------------------------------------
 def compare_models(prompt: str) -> dict:
     """
@@ -105,15 +111,15 @@ def compare_models(prompt: str) -> dict:
 
     Returns:
         Dict với các key:
-            - "gpt4o_response":      str
+            - "gemini35_response":      str
             - "mini_response":       str
-            - "gpt4o_latency":       float
+            - "gemini35_latency":       float
             - "mini_latency":        float
-            - "gpt4o_cost_estimate": float  (USD ước tính cho phản hồi)
+            - "gemini35_cost_estimate": float  (USD ước tính cho phản hồi)
 
     Gợi ý:
         cost = (len(response.split()) / 0.75) / 1000 \\
-               * PRICING_PER_1K_TOKENS["gpt-4o"]["output"]
+               * PRICING_PER_1K_TOKENS[OPENAI_MODEL]["output"]
         (0.75 từ ≈ 1 token — ước lượng thô; Part 2 sẽ tính chính xác hơn)
     """
     # TODO: gọi call_openai và call_openai_mini, ghép dict kết quả
@@ -201,10 +207,10 @@ def estimate_cost(prompt: str, response: str, model: str = OPENAI_MODEL) -> dict
             - "total_cost":    float  (USD)
 
     Gợi ý:
-        pricing = PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS["gpt-4o"])
+        pricing = PRICING_PER_1K_TOKENS.get(model, PRICING_PER_1K_TOKENS[OPENAI_MODEL])
         input_cost = input_tokens / 1000 * pricing["input"]
         (.get với fallback: model không có trong bảng giá — ví dụ model NIM
-         miễn phí — thì lấy giá gpt-4o làm tham chiếu học tập)
+         miễn phí — thì lấy giá LAB_MODEL làm tham chiếu học tập)
     """
     # TODO: đếm token prompt/response, tra bảng giá, trả về dict 5 key
     raise NotImplementedError("Implement estimate_cost")
@@ -344,7 +350,7 @@ def format_comparison_table(results: list[dict]) -> str:
     """
     Định dạng kết quả batch_compare thành bảng text dễ đọc.
 
-    Cột: Prompt | GPT-4o Response | Mini Response | GPT-4o Latency | Mini Latency
+    Cột: Prompt | Gemini35 Response | Mini Response | Gemini35 Latency | Mini Latency
     Gợi ý: cắt text dài còn 40 ký tự cho dễ nhìn.
     """
     # TODO (bonus): dựng chuỗi bảng và trả về

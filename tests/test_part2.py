@@ -123,9 +123,9 @@ class TestEstimateCost(unittest.TestCase):
             places=10,
         )
 
-    def test_mini_is_cheaper_than_gpt4o(self):
-        cost_4o = MOD.estimate_cost(self.PROMPT, self.RESPONSE, model="gpt-4o")
-        cost_mini = MOD.estimate_cost(self.PROMPT, self.RESPONSE, model="gpt-4o-mini")
+    def test_mini_is_cheaper_than_main(self):
+        cost_4o = MOD.estimate_cost(self.PROMPT, self.RESPONSE, model="gemini-3.5-flash-lite")
+        cost_mini = MOD.estimate_cost(self.PROMPT, self.RESPONSE, model="gemini-3.1-flash-lite")
         self.assertLess(cost_mini["total_cost"], cost_4o["total_cost"])
 
 

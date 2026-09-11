@@ -94,36 +94,36 @@ class TestCallOpenAIMini(unittest.TestCase):
 class TestCompareModels(unittest.TestCase):
 
     def test_returns_dict_with_required_keys(self):
-        with patch.object(MOD, "call_openai", return_value=("GPT-4o answer", 0.5)), \
+        with patch.object(MOD, "call_openai", return_value=("Gemini 3.5 answer", 0.5)), \
              patch.object(MOD, "call_openai_mini", return_value=("Mini answer", 0.3)):
             result = MOD.compare_models("Test prompt")
 
         required_keys = {
-            "gpt4o_response",
+            "gemini35_response",
             "mini_response",
-            "gpt4o_latency",
+            "gemini35_latency",
             "mini_latency",
-            "gpt4o_cost_estimate",
+            "gemini35_cost_estimate",
         }
         self.assertIsInstance(result, dict)
         for key in required_keys:
             self.assertIn(key, result, f"Thiếu key: {key}")
 
     def test_latency_values_are_positive(self):
-        with patch.object(MOD, "call_openai", return_value=("GPT-4o answer", 0.5)), \
+        with patch.object(MOD, "call_openai", return_value=("Gemini 3.5 answer", 0.5)), \
              patch.object(MOD, "call_openai_mini", return_value=("Mini answer", 0.3)):
             result = MOD.compare_models("Test prompt")
 
-        self.assertGreater(result["gpt4o_latency"], 0)
+        self.assertGreater(result["gemini35_latency"], 0)
         self.assertGreater(result["mini_latency"], 0)
 
     def test_responses_are_non_empty_strings(self):
-        with patch.object(MOD, "call_openai", return_value=("GPT-4o answer", 0.5)), \
+        with patch.object(MOD, "call_openai", return_value=("Gemini 3.5 answer", 0.5)), \
              patch.object(MOD, "call_openai_mini", return_value=("Mini answer", 0.3)):
             result = MOD.compare_models("Test prompt")
 
-        self.assertIsInstance(result["gpt4o_response"], str)
-        self.assertGreater(len(result["gpt4o_response"]), 0)
+        self.assertIsInstance(result["gemini35_response"], str)
+        self.assertGreater(len(result["gemini35_response"]), 0)
         self.assertIsInstance(result["mini_response"], str)
         self.assertGreater(len(result["mini_response"]), 0)
 
@@ -132,7 +132,7 @@ class TestCompareModels(unittest.TestCase):
              patch.object(MOD, "call_openai_mini", return_value=("word " * 100, 0.3)):
             result = MOD.compare_models("Test prompt")
 
-        self.assertGreaterEqual(result["gpt4o_cost_estimate"], 0)
+        self.assertGreaterEqual(result["gemini35_cost_estimate"], 0)
 
 
 if __name__ == "__main__":

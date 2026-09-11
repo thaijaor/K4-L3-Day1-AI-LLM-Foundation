@@ -25,8 +25,9 @@ Gọi `call_openai` với temperature 0.0, 0.5, 1.0 và 1.5 dùng prompt
 Kịch bản: 10.000 người dùng hoạt động mỗi ngày, mỗi người gọi API 3 lần,
 mỗi lần trung bình ~350 token đầu ra.
 
-**Ước tính GPT-4o đắt hơn GPT-4o-mini bao nhiêu lần cho workload này? Nêu một
-trường hợp GPT-4o xứng đáng với chi phí và một trường hợp nên dùng mini:**
+**Ước tính gemini-3.5-flash-lite đắt hơn gemini-3.1-flash-lite bao nhiêu lần cho
+workload này? Nêu một trường hợp model chính xứng đáng với chi phí và một
+trường hợp nên dùng model nhỏ:**
 > *Câu trả lời của bạn*
 
 ---
