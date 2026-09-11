@@ -15,16 +15,26 @@ Gọi `call_openai` với temperature 0.0, 0.5, 1.0 và 1.5 dùng prompt
 **"Hãy kể cho tôi một sự thật thú vị về Việt Nam."**
 
 **Bạn nhận thấy quy luật gì qua bốn phản hồi?** (2–3 câu)
-> Chạy 5 lần ở mỗi mức (0.0 / 0.5 / 1.0 / 1.5), cả 20 phản hồi đều khác nhau
-> về câu chữ — **kể cả ở temperature = 0.0**. Vậy 0.0 không cho kết quả lặp lại
-> y hệt như lý thuyết mô tả: API không có tham số `seed`, và `top_p = 0.9` vẫn
-> đang lọc song song. Xét theo nội dung thì 0.5 và 1.0 đều kể về hang Sơn Đoòng
-> cả 5/5 lần, còn 0.0 và 1.5 trộn giữa Sơn Đoòng và cà phê Robusta — nên với
-> n = 5 mình **không** quan sát được xu hướng đơn điệu "temperature càng cao
-> càng đa dạng". Cái thấy rõ là temperature tác động lên *cách diễn đạt* nhiều
-> hơn lên *việc chọn chủ đề*, vì model đã được post-train nên có sẵn một câu
-> trả lời "tủ". Riêng ở 1.5 có một lần model gõ sai chính tả ("sơn độong") —
-> dấu hiệu chất lượng bắt đầu suy giảm khi lấy mẫu quá rộng.
+> Chạy 5 lần ở mỗi mức (0.0 / 0.5 / 1.0 / 1.5) thì cả 20 phản hồi đều khác nhau
+> về câu chữ, **kể cả ở temperature = 0.0**. Điều này không mâu thuẫn với
+> README — README chỉ nói temperature thấp "thường ổn định và dễ lặp lại **hơn**"
+> và nhấn mạnh "đây là xu hướng chứ không phải cam kết tuyệt đối". Nó chỉ mâu
+> thuẫn với cách hiểu phổ biến rằng temperature = 0 tương đương greedy decoding
+> nên phải cho ra kết quả y hệt nhau. Về mặt công thức thì đúng là vậy, nhưng
+> phía phục vụ vẫn còn nguồn ngẫu nhiên khác: thứ tự cộng dồn số thực thay đổi
+> theo cách gom batch, định tuyến expert của kiến trúc MoE phụ thuộc vào các
+> request đi cùng batch, cộng với tính toán ở độ chính xác hỗn hợp. Chỉ cần
+> logit xê dịch rất nhỏ là token đứng đầu bị đảo khi hai ứng viên sát nhau.
+>
+> Xét theo *nội dung* thay vì câu chữ: 0.5 và 1.0 đều kể về hang Sơn Đoòng cả
+> 5/5 lần, còn 0.0 và 1.5 trộn giữa Sơn Đoòng và cà phê Robusta. Với n = 5 thì
+> mình **không** quan sát được xu hướng đơn điệu "temperature càng cao càng đa
+> dạng" — cỡ mẫu này quá nhỏ để tách tín hiệu khỏi nhiễu, nên đây là hạn chế
+> của phép đo chứ chưa đủ để kết luận xu hướng đó sai. Cái thấy rõ hơn là
+> temperature tác động lên *cách diễn đạt* nhiều hơn lên *việc chọn chủ đề*,
+> vì model đã được post-train nên có sẵn một câu trả lời "tủ". Riêng ở 1.5 có
+> một lần model gõ sai chính tả ("sơn độong") — dấu hiệu chất lượng bắt đầu
+> suy giảm khi lấy mẫu quá rộng.
 
 ### Câu 1.2 — Chọn temperature cho sản phẩm
 **Bạn sẽ đặt temperature bao nhiêu cho chatbot hỗ trợ khách hàng, và tại sao?**
